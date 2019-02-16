@@ -1,0 +1,78 @@
+version: '2.2'
+services:
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:6.5.4
+    restart: unless-stopped
+    environment:
+      - NETWORK_HOST="0.0.0.0"
+      - bootstrap.memory_lock=true
+      - xpack.monitoring.collection.enabled=true
+      - "ES_JAVA_OPTS=-Xms4096m -Xmx4096m"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    ports:
+      - 9200
+    networks:
+      - elk_network
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:6.5.4
+    restart: unless-stopped
+    environment:
+      ELASTICSEARCH_URL: http://elasticsearch:9200
+      SERVER_HOST: "0.0.0.0"
+    ports:
+      - 5601
+    networks:
+      - elk_network
+
+  nginx:
+    image: nginx:1.15.6
+    restart: unless-stopped
+    volumes:
+      - ./confs/nginx/:/etc/nginx/conf.d
+      - ./confs/nginx/nginx.htpasswd:/etc/nginx/.htpasswd
+      - ./data/certbot/conf:/etc/letsencrypt
+      - ./data/certbot/www:/var/www/certbot
+    ports:
+      - "8080:80"
+      - "8081:81"
+    depends_on:
+      - elasticsearch
+      - kibana
+    networks:
+      - elk_network
+
+  metricbeat:
+    image: docker.elastic.co/beats/metricbeat:6.5.4
+    restart: unless-stopped
+    hostname: "metricbeat"
+    volumes:
+      - /proc:/hostfs/proc:ro
+      - /sys/fs/cgroup:/hostfs/sys/fs/cgroup:ro
+      - /:/hostfs:ro
+      - ./confs/metricbeat/metricbeat.yml:/usr/share/metricbeat/metricbeat.yml
+    environment:
+      - ELASTICSEARCH_HOST=elasticsearch
+      - KIBANA_HOST=kibana
+      - ELASTICSEARCH_USERNAME=admin
+      - ELASTICSEARCH_PASSWORD=admin
+    command: ["--strict.perms=false", "-system.hostfs=/hostfs"]
+    depends_on:
+      - elasticsearch
+      - kibana
+    networks:
+      - elk_network
+
+volumes:
+  es_data:
+    driver: local
+
+networks:
+  elk_network:
+    name: elk_network
