@@ -2,7 +2,7 @@ version: '2.2'
 services:
 
   elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:6.5.4
+    image: docker.elastic.co/elasticsearch/elasticsearch:6.6.2
     restart: unless-stopped
     environment:
       - NETWORK_HOST="0.0.0.0"
@@ -21,7 +21,7 @@ services:
       - elk_network
 
   kibana:
-    image: docker.elastic.co/kibana/kibana:6.5.4
+    image: docker.elastic.co/kibana/kibana:6.6.2
     restart: unless-stopped
     environment:
       ELASTICSEARCH_URL: http://elasticsearch:9200
@@ -32,7 +32,7 @@ services:
       - elk_network
 
   nginx:
-    image: nginx:1.15.6
+    image: nginx:1.15.9
     restart: unless-stopped
     volumes:
       - ./confs/nginx/:/etc/nginx/conf.d
@@ -49,25 +49,17 @@ services:
       - elk_network
 
   metricbeat:
-    image: docker.elastic.co/beats/metricbeat:6.5.4
+    image: docker.elastic.co/beats/metricbeat:6.6.2
     restart: unless-stopped
     hostname: "metricbeat"
     volumes:
       - /proc:/hostfs/proc:ro
       - /sys/fs/cgroup:/hostfs/sys/fs/cgroup:ro
       - /:/hostfs:ro
+      - /var/run/docker.sock:/var/run/docker.sock
       - ./confs/metricbeat/metricbeat.yml:/usr/share/metricbeat/metricbeat.yml
-    environment:
-      - ELASTICSEARCH_HOST=elasticsearch
-      - KIBANA_HOST=kibana
-      - ELASTICSEARCH_USERNAME=admin
-      - ELASTICSEARCH_PASSWORD=admin
     command: ["--strict.perms=false", "-system.hostfs=/hostfs"]
-    depends_on:
-      - elasticsearch
-      - kibana
-    networks:
-      - elk_network
+    network_mode: host
 
 volumes:
   es_data:
