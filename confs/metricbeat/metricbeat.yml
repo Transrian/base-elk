@@ -8,6 +8,8 @@
 #      # https://www.elastic.co/guide/en/beats/metricbeat/current/configuration-autodiscover-hints.html
 #      hints.enabled: true
 
+name: workstation
+
 metricbeat.modules:
 #------------------------------- System Module -------------------------------
 - module: system
